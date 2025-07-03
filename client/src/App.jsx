@@ -23,14 +23,16 @@ function App() {
   };
 
   return (
-    <div>
-  <h1>CHAT APP</h1>
-  {!isLoggedIn ? (
-    <Login socket={socket} onLogin={handleLogin} />
-  ) : (
-    <Chat socket={socket} username={username} />
-  )}
-</div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 flex flex-col items-center justify-center">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-4">
+        <h1 className="text-3xl font-bold text-center text-blue-700 mb-4 tracking-wide">Chat App</h1>
+        {!isLoggedIn ? (
+          <Login socket={socket} onLogin={handleLogin} />
+        ) : (
+          <Chat socket={socket} username={username} />
+        )}
+      </div>
+    </div>
   );
 }
 

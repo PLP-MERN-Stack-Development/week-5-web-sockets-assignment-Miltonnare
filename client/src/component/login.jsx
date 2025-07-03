@@ -10,14 +10,20 @@ function Login({ socket, onLogin }) {
   };
 
   return (
-    <div>
+    <div className="flex flex-col gap-3">
       <input
         type="text"
         placeholder="Enter username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
       />
-      <button onClick={handleLogin}>Login</button>
+      <button
+        onClick={handleLogin}
+        className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition"
+      >
+        Login
+      </button>
     </div>
   );
 }
