@@ -18,6 +18,11 @@ const io=new server(server,{
 
 io.on("connection",(socket)=>{
   console.log("User Conected", socket.id);
+  socket.on('set-username',(userName)=>{
+    socket.userName=userName;
+
+    io.emit('user-online',{id:socket.id, userName});
+  });
 
   socket.on("disconnect",(socket)=>{
     console.log("User disconnected",socket.id);

@@ -1,25 +1,37 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
+import Login from "./component/login";
+import { io } from 'socket.io-client';
+import Chat from "./component/chat";
 
-import {io} from 'socket.io-client';
+const socket = io(import.meta.env.VITE_SOCKET_URL);
 
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
 
-const socket=io(import.meta.env.SOCKET_URL)
-
-function App(){
-  useEffect(()=>{
-    socket.on('connect',()=>{
-      console.log("Connected to Server:",socket.id);
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log("Connected to Server:", socket.id);
     });
-    return ()=>socket.disconnect();
-  },[]);
 
+    return () => socket.disconnect();
+  }, []);
 
-  return(
+  const handleLogin = (name) => {
+    setUsername(name);
+    setIsLoggedIn(true);
+  };
+
+  return (
     <div>
-      <h1>CHAT APP</h1>
-    </div>
-
-  )
+  <h1>CHAT APP</h1>
+  {!isLoggedIn ? (
+    <Login socket={socket} onLogin={handleLogin} />
+  ) : (
+    <Chat socket={socket} username={username} />
+  )}
+</div>
+  );
 }
 
 export default App;
