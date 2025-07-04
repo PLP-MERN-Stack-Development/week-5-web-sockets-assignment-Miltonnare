@@ -2,14 +2,14 @@ import TypingIndicator from "./typingIndicator";
 import { useState, useEffect } from "react";
 
 function Chat({ socket, userName }) {
-
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
     const [typingUser, setTypingUser] = useState('');
-    const [onlineUsers, setOnlineUsers] = useState([]);
 
 
     const sendMessage = () => {
+        console.log('Send button clicked');
+        console.log('Socket connected:', socket.connected);
         if (!message.trim()) return;
         socket.emit('chat-message', {
             userName,
@@ -20,58 +20,57 @@ function Chat({ socket, userName }) {
     };
 
     useEffect(() => {
-        socket.on('chat-message', (data) => {
-            setMessages((prev) => [...prev, data])
-        });
-        return () => socket.off('chat-message')
-    }, [socket]);
-
-    useEffect(() => {
-        // Listen for all currently online users
-        socket.on('online-users', (users) => {
-            setOnlineUsers(users);
-        });
-        // Listen for user-online events
-        socket.on('user-online', ({ id, userName }) => {
-            setOnlineUsers((prev) => {
-                if (!prev.some(u => u.id === id)) {
-                    return [...prev, { id, userName }];
-                }
-                return prev;
-            });
-        });
-        // Listen for user disconnects
-        socket.on('user-offline', (id) => {
-            setOnlineUsers((prev) => prev.filter(u => u.id !== id));
-        });
-        return () => {
-            socket.off('online-users');
-            socket.off('user-online');
-            socket.off('user-offline');
+        const handleMessage = (data) => {
+            // Log for debugging
+            console.log('Received message:', data);
+            if (data && typeof data.userName !== 'undefined' && typeof data.msg !== 'undefined') {
+                setMessages((prev) => [...prev, data]);
+            }
         };
+        socket.on('chat-message', handleMessage);
+        return () => socket.off('chat-message', handleMessage);
     }, [socket]);
 
+
+
+    // Debug: log userName
+    console.log('Chat userName prop:', userName);
     return (
         <div className="flex flex-col h-96">
-            {/* Online users list */}
-            <div className="flex gap-2 mb-2 flex-wrap">
-                {onlineUsers.map(u => (
-                    <span key={u.id} className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-1 inline-block"></span>
-                        {u.userName}
-                    </span>
-                ))}
-            </div>
             <div className="flex-1 overflow-y-auto mb-2 bg-gray-50 rounded-lg p-3 border border-gray-200">
-                {messages.map((msg, idx) => (
+                {messages.map((msg, idx) => {
+                  const colors = [
+                    'bg-blue-500 text-white',
+                    'bg-green-500 text-white',
+                    'bg-purple-500 text-white',
+                    'bg-pink-500 text-white',
+                    'bg-yellow-400 text-gray-900',
+                    'bg-red-500 text-white',
+                    'bg-indigo-500 text-white',
+                    'bg-teal-500 text-white',
+                  ];
+                  function hashUser(str) {
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    return Math.abs(hash);
+                  }
+                  const colorClass = msg.userName === userName
+                    ? 'bg-blue-700 text-white' 
+                    : colors[hashUser(msg.userName || '') % colors.length];
+                  return (
                     <div key={idx} className={`flex ${msg.userName === userName ? 'justify-end' : 'justify-start'} mb-2`}>
-                        <div className={`max-w-xs px-4 py-2 rounded-2xl shadow text-sm ${msg.userName === userName ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'}`}>
-                            <span className="font-semibold mr-2">{msg.userName}</span>
-                            <span>{msg.msg}</span>
-                            <div className="text-xs text-right text-gray-400 mt-1">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</div>
+                      <div className={`max-w-xs px-4 py-2 rounded-2xl shadow text-sm ${colorClass} flex flex-col`}>
+                        <div className="flex w-full">
+                          <span className="font-semibold mr-2 text-left w-full block">{msg.userName || 'Unknown'}</span>
                         </div>
+                        <span>{msg.msg}</span>
+                        <div className="text-xs text-right text-gray-200/80 mt-1">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</div>
+                      </div>
                     </div>
-                ))}
+                  );
+                })}
             </div>
             <TypingIndicator socket={socket} setTypingUser={setTypingUser} />
             {typingUser && <p className="text-xs text-gray-500 mb-1">{typingUser} is typing...</p>}

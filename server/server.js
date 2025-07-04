@@ -18,19 +18,13 @@ const io=new Server(server,{
 
 io.on("connection",(socket)=>{
   console.log("User Conected", socket.id);
-  socket.on('set-username',(userName)=>{
-    socket.userName=userName;
-    io.emit('user-online',{id:socket.id, userName});
-  });
 
-  // Send all currently online users to the new user
-  const onlineUsers = [];
-  for (let [id, s] of io.of('/').sockets) {
-    if (s.userName) {
-      onlineUsers.push({ id, userName: s.userName });
+  socket.on('set-username',(userName, ack)=>{
+    socket.userName=userName;
+    if (typeof ack === 'function') {
+      ack({ success: true });
     }
-  }
-  socket.emit('online-users', onlineUsers);
+  });
 
    socket.on('chat-message', (data) => {
     io.emit('chat-message', data);
@@ -42,9 +36,7 @@ io.on("connection",(socket)=>{
 
   socket.on("disconnect",()=>{
     console.log("User disconnected",socket.id);
-    if (socket.userName) {
-      io.emit('user-offline', socket.id);
-    }
+    
   });
 }
 
