@@ -1,4 +1,3 @@
-
 const express=require('express');
 const cors=require('cors');
 const http=require('http');
@@ -16,11 +15,31 @@ const io=new Server(server,{
   }
 });
 
+// Store connected users with their socket IDs
+const connectedUsers = new Map(); // userName -> socketId
+const userSockets = new Map(); // socketId -> userName
+
 io.on("connection",(socket)=>{
   console.log("User Conected", socket.id);
 
   socket.on('set-username',(userName, ack)=>{
+    // Remove old username if it exists
+    if (socket.userName) {
+      connectedUsers.delete(socket.userName);
+      userSockets.delete(socket.id);
+    }
+    
     socket.userName=userName;
+    connectedUsers.set(userName, socket.id);
+    userSockets.set(socket.id, userName);
+    
+    // Broadcast updated online users list
+    io.emit('user-status-update', {
+      type: 'user-online',
+      userName: userName,
+      onlineUsers: Array.from(connectedUsers.keys())
+    });
+    
     if (typeof ack === 'function') {
       ack({ success: true });
     }
@@ -37,6 +56,19 @@ io.on("connection",(socket)=>{
   socket.on("disconnect",()=>{
     console.log("User disconnected",socket.id);
     
+    // Remove user from online list
+    const userName = userSockets.get(socket.id);
+    if (userName) {
+      connectedUsers.delete(userName);
+      userSockets.delete(socket.id);
+      
+      // Broadcast updated online users list
+      io.emit('user-status-update', {
+        type: 'user-offline',
+        userName: userName,
+        onlineUsers: Array.from(connectedUsers.keys())
+      });
+    }
   });
 }
 

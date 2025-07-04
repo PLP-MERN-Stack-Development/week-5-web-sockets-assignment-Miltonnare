@@ -1,7 +1,7 @@
 import TypingIndicator from "./typingIndicator";
 import { useState, useEffect } from "react";
 
-function Chat({ socket, userName }) {
+function Chat({ socket, userName, onlineUsers }) {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
     const [typingUser, setTypingUser] = useState('');
@@ -37,6 +37,22 @@ function Chat({ socket, userName }) {
     console.log('Chat userName prop:', userName);
     return (
         <div className="flex flex-col h-96">
+            {/* Online Users List */}
+            <div className="mb-3 p-2 bg-gray-100 rounded-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Online Users ({onlineUsers.length})</h3>
+                <div className="flex flex-wrap gap-1">
+                    {onlineUsers.map((user, index) => (
+                        <div key={index} className="flex items-center gap-1">
+                            <div className={`w-2 h-2 rounded-full ${user === userName ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                            <span className={`text-xs ${user === userName ? 'font-bold text-green-700' : 'text-gray-600'}`}>
+                                {user}
+                            </span>
+                            {index < onlineUsers.length - 1 && <span className="text-gray-400">,</span>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+            
             <div className="flex-1 overflow-y-auto mb-2 bg-gray-50 rounded-lg p-3 border border-gray-200">
                 {messages.map((msg, idx) => {
                   const colors = [

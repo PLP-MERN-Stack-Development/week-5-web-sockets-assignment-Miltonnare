@@ -9,6 +9,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [isSocketConnected, setIsSocketConnected] = useState(socket.connected);
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -18,9 +19,18 @@ function App() {
     socket.on('disconnect', () => {
       setIsSocketConnected(false);
     });
+    
+    // Listen for user status updates
+    socket.on('user-status-update', (data) => {
+      console.log('User status update:', data);
+      setOnlineUsers(data.onlineUsers);
+    });
+    
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('user-status-update');
+      // Removed socket.disconnect() to keep the connection alive
     };
   }, []);
 
@@ -48,7 +58,7 @@ function App() {
         {!isLoggedIn ? (
           <Login socket={socket} onLogin={handleLogin} />
         ) : (
-          <Chat socket={socket} userName={userName} />
+          <Chat socket={socket} userName={userName} onlineUsers={onlineUsers} />
         )}
       </div>
     </div>
