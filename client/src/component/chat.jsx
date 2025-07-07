@@ -30,6 +30,14 @@ function Chat({ socket, userName, onlineUsers, room }) {
         setMessage('')
     };
 
+    // Request notification permission on mount
+    useEffect(() => {
+        if (window.Notification && Notification.permission !== 'granted') {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    // Show notification for new messages when not focused
     useEffect(() => {
         const handleMessage = (data) => {
             // Log for debugging
@@ -41,13 +49,20 @@ function Chat({ socket, userName, onlineUsers, room }) {
             if (data && typeof data.userName !== 'undefined' && typeof data.msg !== 'undefined') {
                 console.log('Adding message to state');
                 setMessages((prev) => [...prev, data]);
+                // Show notification if not focused and not sent by self
+                if (document.visibilityState !== 'visible' && data.userName !== userName && window.Notification && Notification.permission === 'granted') {
+                    new Notification(`New message from ${data.userName}`, {
+                        body: data.msg.length > 60 ? data.msg.slice(0, 60) + '...' : data.msg,
+                        icon: '/vite.svg'
+                    });
+                }
             } else {
                 console.log('Message filtered out - missing required fields');
             }
         };
         socket.on('chat-message', handleMessage);
         return () => socket.off('chat-message', handleMessage);
-    }, [socket, room]);
+    }, [socket, room, userName]);
 
     // Listen for read receipts
     useEffect(() => {
@@ -98,9 +113,9 @@ function Chat({ socket, userName, onlineUsers, room }) {
     // Debug: log userName
     console.log('Chat userName prop:', userName);
     return (
-        <div className="flex flex-col h-96">
+        <div className="flex flex-col h-96 max-h-[80vh]">
             {/* Online Users List */}
-            <div className="mb-3 p-2 bg-gray-100 rounded-lg">
+            <div className="mb-3 p-2 bg-gray-100 rounded-lg overflow-x-auto">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Online Users ({onlineUsers.length})</h3>
                 <div className="flex flex-wrap gap-1">
                     {onlineUsers.map((user, index) => (
@@ -115,7 +130,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
                 </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto mb-2 bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div className="flex-1 overflow-y-auto mb-2 bg-gray-50 rounded-lg p-2 sm:p-3 border border-gray-200">
                 {messages.map((msg, idx) => {
                   const colors = [
                     'bg-blue-500 text-white',
@@ -140,11 +155,11 @@ function Chat({ socket, userName, onlineUsers, room }) {
                   const isRead = readBy[msg.id]?.length >= onlineUsers.length;
                   return (
                     <div key={msg.id || idx} className={`flex ${msg.userName === userName ? 'justify-end' : 'justify-start'} mb-2`}>
-                      <div className={`max-w-xs px-4 py-2 rounded-2xl shadow text-sm ${colorClass} flex flex-col`}>
+                      <div className={`max-w-[80vw] sm:max-w-xs px-3 py-2 rounded-2xl shadow text-sm ${colorClass} flex flex-col`}>
                         <div className="flex w-full">
-                          <span className="font-semibold mr-2 text-left w-full block">{msg.userName || 'Unknown'}</span>
+                          <span className="font-semibold mr-2 text-left w-full block truncate">{msg.userName || 'Unknown'}</span>
                         </div>
-                        <span>{msg.msg}</span>
+                        <span className="break-words">{msg.msg}</span>
                         <div className="text-xs text-right text-gray-200/80 mt-1 flex items-center gap-1">
                           {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
                           {msg.userName === userName && msg.id && (
@@ -155,7 +170,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
                         </div>
                         {/* Message Reactions UI */}
                         {msg.id && (
-                          <div className="flex gap-1 mt-1">
+                          <div className="flex gap-1 mt-1 flex-wrap">
                             {availableReactions.map(r => (
                               <button
                                 key={r.emoji}
@@ -180,7 +195,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
             </div>
             <TypingIndicator socket={socket} setTypingUser={setTypingUser} />
             {typingUser && <p className="text-xs text-gray-500 mb-1">{typingUser} is typing...</p>}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-col sm:flex-row w-full">
                 <input
                     type="text"
                     value={message}
@@ -189,14 +204,14 @@ function Chat({ socket, userName, onlineUsers, room }) {
                         socket.emit('typing', { userName, room });
                     }}
                     placeholder="Type Message"
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-sm"
                     onKeyDown={e => {
                         if (e.key === 'Enter') sendMessage();
                     }}
                 />
                 <button
                     onClick={sendMessage}
-                    className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition"
+                    className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition text-sm"
                 >
                     Send
                 </button>
