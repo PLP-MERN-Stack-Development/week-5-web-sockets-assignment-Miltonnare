@@ -1,16 +1,35 @@
-[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-2e0aaae1b6195c2367325f4f02e2d04e9abb55f0b24a779b69b11b9e10269abc.svg)](https://classroom.github.com/online_ide?assignment_repo_id=19888931&assignment_repo_type=AssignmentRepo)
+
 # Real-Time Chat Application with Socket.io
 
-This assignment focuses on building a real-time chat application using Socket.io, implementing bidirectional communication between clients and server.
+Focuses on building a real-time chat application using Socket.io, implementing bidirectional communication between clients and server.
 
-## Assignment Overview
+## 🚀 Features
 
-You will build a chat application with the following features:
-1. Real-time messaging using Socket.io
-2. User authentication and presence
-3. Multiple chat rooms or private messaging
-4. Real-time notifications
-5. Advanced features like typing indicators and read receipts
+- 🔗 Real-time messaging using Socket.io
+- 👤 Simple username-based login
+- 💬 Global and private chat rooms
+- ✍️ Typing indicators
+- ✅ Online/offline user tracking
+- 💖 Message reactions (like, love, etc.)
+- 📥 File/image sharing (optional)
+- 🔔 Real-time and browser notifications
+- 📱 Responsive design for mobile & desktop
+- 💾 MongoDB integration for persistent storage
+
+---
+## 🏗️ Tech Stack
+
+### Frontend
+- React
+- Socket.io-client
+- TailwindCSS / CSS
+ ### Backend
+- Node.js
+- Express.js
+- Socket.io
+- MongoDB with Mongoose
+
+---
 
 ## Project Structure
 
@@ -37,20 +56,33 @@ socketio-chat/
 └── README.md               # Project documentation
 ```
 
-## Getting Started
+## 🔌 Socket.io Events Summary
 
-1. Accept the GitHub Classroom assignment invitation
-2. Clone your personal repository that was created by GitHub Classroom
-3. Follow the setup instructions in the `Week5-Assignment.md` file
-4. Complete the tasks outlined in the assignment
+Event 	           Direction	           Description
 
-## Files Included
+connect	client → server	Client connects to socket server
 
-- `Week5-Assignment.md`: Detailed assignment instructions
-- Starter code for both client and server:
-  - Basic project structure
-  - Socket.io configuration templates
-  - Sample components for the chat interface
+set-username	client → server	Assigns username to connected socket
+
+chat-message	client ↔ server	Broadcasts message to room
+
+join-room	client → server	Joins a specific room
+
+typing	client → server	Emits typing status
+
+reaction-updated	server → client	Broadcasts updated reactions on message
+
+add-reaction	client → server	React to a message
+
+disconnect	server → client	Handle user disconnect
+
+## Screenshots
+<img width="599" alt="webs" src="https://github.com/user-attachments/assets/fb6f403a-3738-4c65-90df-58be1d546ea4" />
+<img width="445" alt="webs2" src="https://github.com/user-attachments/assets/93b11e2f-75d3-4bc4-8faf-d240bcd05b33" />
+
+
+## LIVE DEMO
+[CLICK HERE](https://web-sockets-lovat.vercel.app/)
 
 ## Requirements
 
@@ -59,17 +91,23 @@ socketio-chat/
 - Modern web browser
 - Basic understanding of React and Express
 
-## Submission
+## Future Improvements
 
-Your work will be automatically submitted when you push to your GitHub Classroom repository. Make sure to:
+🔐 JWT authentication
 
-1. Complete both the client and server portions of the application
-2. Implement the core chat functionality
-3. Add at least 3 advanced features
-4. Document your setup process and features in the README.md
-5. Include screenshots or GIFs of your working application
-6. Optional: Deploy your application and add the URLs to your README.md
+🔎 Search messages
 
+📅 Message pagination
+
+🛎️ Custom notification sounds
+
+🌐 WebSocket namespaces and channels
+
+🌍 Language support / i18n
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repo and submit a pull request.
 ## Resources
 
 - [Socket.io Documentation](https://socket.io/docs/v4/)
