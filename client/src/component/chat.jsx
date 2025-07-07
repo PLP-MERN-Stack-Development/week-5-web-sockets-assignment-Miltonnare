@@ -6,7 +6,16 @@ function Chat({ socket, userName, onlineUsers, room }) {
     const [messages, setMessages] = useState([]);
     const [typingUser, setTypingUser] = useState('');
     const [readBy, setReadBy] = useState({}); // { messageId: [userName, ...] }
+    const [reactions, setReactions] = useState({}); // { messageId: { emoji: [userName, ...] } }
     const messagesEndRef = useRef(null);
+    const availableReactions = [
+        { emoji: '👍', label: 'Like' },
+        { emoji: '❤️', label: 'Love' },
+        { emoji: '😂', label: 'Haha' },
+        { emoji: '😮', label: 'Wow' },
+        { emoji: '😢', label: 'Sad' },
+        { emoji: '👏', label: 'Clap' },
+    ];
 
     const sendMessage = () => {
         console.log('Send button clicked');
@@ -66,11 +75,25 @@ function Chat({ socket, userName, onlineUsers, room }) {
         }
     }, [messages, room, userName, socket]);
 
-    // Clear messages and readBy when room changes
+    // Listen for reaction updates
+    useEffect(() => {
+        const handleReactionUpdate = ({ messageId, reactions: newReactions }) => {
+            setReactions(prev => ({ ...prev, [messageId]: newReactions }));
+        };
+        socket.on('message-reaction-update', handleReactionUpdate);
+        return () => socket.off('message-reaction-update', handleReactionUpdate);
+    }, [socket]);
+
+    // Clear messages, readBy, and reactions when room changes
     useEffect(() => {
         setMessages([]);
         setReadBy({});
+        setReactions({});
     }, [room]);
+
+    const handleReact = (messageId, emoji) => {
+        socket.emit('message-reaction', { messageId, emoji, userName, room });
+    };
 
     // Debug: log userName
     console.log('Chat userName prop:', userName);
@@ -130,6 +153,25 @@ function Chat({ socket, userName, onlineUsers, room }) {
                             </span>
                           )}
                         </div>
+                        {/* Message Reactions UI */}
+                        {msg.id && (
+                          <div className="flex gap-1 mt-1">
+                            {availableReactions.map(r => (
+                              <button
+                                key={r.emoji}
+                                className={`text-lg px-1 rounded hover:bg-gray-200 focus:outline-none ${reactions[msg.id]?.[r.emoji]?.includes(userName) ? 'bg-blue-100' : ''}`}
+                                title={r.label}
+                                onClick={() => handleReact(msg.id, r.emoji)}
+                                type="button"
+                              >
+                                {r.emoji}
+                                {reactions[msg.id]?.[r.emoji]?.length > 0 && (
+                                  <span className="ml-1 text-xs text-gray-600">{reactions[msg.id][r.emoji].length}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

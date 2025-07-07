@@ -21,6 +21,9 @@ const connectedUsers = new Map();
 const userSockets = new Map(); 
 const roomUsers = new Map(); 
 
+// Store message reactions: messageId -> { emoji: [userName, ...] }
+const messageReactions = new Map();
+
 io.on("connection", (socket) => {
   console.log("User Connected", socket.id);
 
@@ -72,6 +75,23 @@ io.on("connection", (socket) => {
 
   socket.on('typing', ({ userName, room }) => {
     socket.to(room).emit('typing', userName);
+  });
+
+  // Message reactions
+  socket.on('message-reaction', ({ messageId, emoji, userName, room }) => {
+    if (!messageId || !emoji || !userName || !room) return;
+    if (!messageReactions.has(messageId)) messageReactions.set(messageId, {});
+    const reactions = messageReactions.get(messageId);
+    if (!reactions[emoji]) reactions[emoji] = [];
+    // Toggle reaction: add if not present, remove if present
+    if (reactions[emoji].includes(userName)) {
+      reactions[emoji] = reactions[emoji].filter(u => u !== userName);
+    } else {
+      reactions[emoji].push(userName);
+    }
+    messageReactions.set(messageId, reactions);
+    // Broadcast updated reactions to the room
+    io.to(room).emit('message-reaction-update', { messageId, reactions });
   });
 
   socket.on("disconnect", () => {
