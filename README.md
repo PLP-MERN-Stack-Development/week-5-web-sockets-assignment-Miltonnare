@@ -58,7 +58,7 @@ socketio-chat/
 
 ## 🔌 Socket.io Events Summary
 
-Event 	   Direction	     Description
+Event 	           Direction	           Description
 
 connect	client → server	Client connects to socket server
 
