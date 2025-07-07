@@ -76,6 +76,13 @@ add-reaction	client → server	React to a message
 
 disconnect	server → client	Handle user disconnect
 
+## Screenshots
+<img width="599" alt="webs" src="https://github.com/user-attachments/assets/fb6f403a-3738-4c65-90df-58be1d546ea4" />
+<img width="445" alt="webs2" src="https://github.com/user-attachments/assets/93b11e2f-75d3-4bc4-8faf-d240bcd05b33" />
+
+
+
+
 ## Requirements
 
 - Node.js (v18 or higher)
