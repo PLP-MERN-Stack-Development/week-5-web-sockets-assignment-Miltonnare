@@ -30,14 +30,14 @@ function Chat({ socket, userName, onlineUsers, room }) {
         setMessage('')
     };
 
-    // Request notification permission on mount
+    
     useEffect(() => {
         if (window.Notification && Notification.permission !== 'granted') {
             Notification.requestPermission();
         }
     }, []);
 
-    // Show notification for new messages when not focused
+    
     useEffect(() => {
         const handleMessage = (data) => {
             // Log for debugging
@@ -49,7 +49,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
             if (data && typeof data.userName !== 'undefined' && typeof data.msg !== 'undefined') {
                 console.log('Adding message to state');
                 setMessages((prev) => [...prev, data]);
-                // Show notification if not focused and not sent by self
+                
                 if (document.visibilityState !== 'visible' && data.userName !== userName && window.Notification && Notification.permission === 'granted') {
                     new Notification(`New message from ${data.userName}`, {
                         body: data.msg.length > 60 ? data.msg.slice(0, 60) + '...' : data.msg,
@@ -64,7 +64,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
         return () => socket.off('chat-message', handleMessage);
     }, [socket, room, userName]);
 
-    // Listen for read receipts
+   
     useEffect(() => {
         const handleRead = ({ messageId, userName: reader }) => {
             setReadBy(prev => ({
@@ -76,7 +76,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
         return () => socket.off('message-read', handleRead);
     }, [socket]);
 
-    // Emit read receipt for latest message when messages change or room changes
+    
     useEffect(() => {
         if (messages.length > 0) {
             const lastMsg = messages[messages.length - 1];
@@ -84,13 +84,13 @@ function Chat({ socket, userName, onlineUsers, room }) {
                 socket.emit('message-read', { messageId: lastMsg.id, room, userName });
             }
         }
-        // Scroll to bottom
+        
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [messages, room, userName, socket]);
 
-    // Listen for reaction updates
+ 
     useEffect(() => {
         const handleReactionUpdate = ({ messageId, reactions: newReactions }) => {
             setReactions(prev => ({ ...prev, [messageId]: newReactions }));
@@ -99,7 +99,7 @@ function Chat({ socket, userName, onlineUsers, room }) {
         return () => socket.off('message-reaction-update', handleReactionUpdate);
     }, [socket]);
 
-    // Clear messages, readBy, and reactions when room changes
+    
     useEffect(() => {
         setMessages([]);
         setReadBy({});
