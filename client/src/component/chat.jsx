@@ -1,11 +1,12 @@
 import TypingIndicator from "./typingIndicator";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-function Chat({ socket, userName, onlineUsers }) {
+function Chat({ socket, userName, onlineUsers, room }) {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
     const [typingUser, setTypingUser] = useState('');
-
+    const [readBy, setReadBy] = useState({}); // { messageId: [userName, ...] }
+    const messagesEndRef = useRef(null);
 
     const sendMessage = () => {
         console.log('Send button clicked');
@@ -14,7 +15,8 @@ function Chat({ socket, userName, onlineUsers }) {
         socket.emit('chat-message', {
             userName,
             msg: message,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            room
         });
         setMessage('')
     };
@@ -23,15 +25,52 @@ function Chat({ socket, userName, onlineUsers }) {
         const handleMessage = (data) => {
             // Log for debugging
             console.log('Received message:', data);
+            console.log('Current room:', room);
+            console.log('Message room:', data.room);
+            console.log('Room match:', data.room === room);
+            
             if (data && typeof data.userName !== 'undefined' && typeof data.msg !== 'undefined') {
+                console.log('Adding message to state');
                 setMessages((prev) => [...prev, data]);
+            } else {
+                console.log('Message filtered out - missing required fields');
             }
         };
         socket.on('chat-message', handleMessage);
         return () => socket.off('chat-message', handleMessage);
+    }, [socket, room]);
+
+    // Listen for read receipts
+    useEffect(() => {
+        const handleRead = ({ messageId, userName: reader }) => {
+            setReadBy(prev => ({
+                ...prev,
+                [messageId]: prev[messageId] ? [...new Set([...prev[messageId], reader])] : [reader]
+            }));
+        };
+        socket.on('message-read', handleRead);
+        return () => socket.off('message-read', handleRead);
     }, [socket]);
 
+    // Emit read receipt for latest message when messages change or room changes
+    useEffect(() => {
+        if (messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg && lastMsg.id) {
+                socket.emit('message-read', { messageId: lastMsg.id, room, userName });
+            }
+        }
+        // Scroll to bottom
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, room, userName, socket]);
 
+    // Clear messages and readBy when room changes
+    useEffect(() => {
+        setMessages([]);
+        setReadBy({});
+    }, [room]);
 
     // Debug: log userName
     console.log('Chat userName prop:', userName);
@@ -75,18 +114,27 @@ function Chat({ socket, userName, onlineUsers }) {
                   const colorClass = msg.userName === userName
                     ? 'bg-blue-700 text-white' 
                     : colors[hashUser(msg.userName || '') % colors.length];
+                  const isRead = readBy[msg.id]?.length >= onlineUsers.length;
                   return (
-                    <div key={idx} className={`flex ${msg.userName === userName ? 'justify-end' : 'justify-start'} mb-2`}>
+                    <div key={msg.id || idx} className={`flex ${msg.userName === userName ? 'justify-end' : 'justify-start'} mb-2`}>
                       <div className={`max-w-xs px-4 py-2 rounded-2xl shadow text-sm ${colorClass} flex flex-col`}>
                         <div className="flex w-full">
                           <span className="font-semibold mr-2 text-left w-full block">{msg.userName || 'Unknown'}</span>
                         </div>
                         <span>{msg.msg}</span>
-                        <div className="text-xs text-right text-gray-200/80 mt-1">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</div>
+                        <div className="text-xs text-right text-gray-200/80 mt-1 flex items-center gap-1">
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                          {msg.userName === userName && msg.id && (
+                            <span className="ml-2 text-green-500 text-xs font-bold">
+                              {isRead ? '✓✓ Read' : (readBy[msg.id]?.length ? `✓ Read by ${readBy[msg.id].length}` : '')}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} />
             </div>
             <TypingIndicator socket={socket} setTypingUser={setTypingUser} />
             {typingUser && <p className="text-xs text-gray-500 mb-1">{typingUser} is typing...</p>}
@@ -96,7 +144,7 @@ function Chat({ socket, userName, onlineUsers }) {
                     value={message}
                     onChange={(e) => {
                         setMessage(e.target.value);
-                        socket.emit('typing', userName);
+                        socket.emit('typing', { userName, room });
                     }}
                     placeholder="Type Message"
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"

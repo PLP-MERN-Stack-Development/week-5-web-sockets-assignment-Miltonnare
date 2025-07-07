@@ -8,19 +8,7 @@ function Login({ socket, onLogin }) {
     console.log('Login button clicked');
     console.log('Socket connected:', socket.connected);
     if (!userName.trim()) return;
-    try {
-      socket.emit('set-username', userName, (res) => {
-        console.log('set-username response:', res);
-        if (res && res.success) {
-          onLogin(userName);
-          console.log("Username",userName);
-        } else {
-          alert('Failed to set username.');
-        }
-      });
-    } catch (err) {
-      alert('Socket error: ' + err.message);
-    }
+    onLogin(userName);
   };
 
   socket.on("disconnect", (reason) => {
@@ -39,6 +27,7 @@ function Login({ socket, onLogin }) {
       <button
         type="submit"
         className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition"
+        disabled={!userName.trim()}
       >
         Login
       </button>

@@ -1,6 +1,7 @@
 const express=require('express');
 const cors=require('cors');
 const http=require('http');
+const { v4: uuidv4 } = require('uuid');
 
 const {Server}=require('socket.io');
 
@@ -15,64 +16,86 @@ const io=new Server(server,{
   }
 });
 
-// Store connected users with their socket IDs
-const connectedUsers = new Map(); // userName -> socketId
-const userSockets = new Map(); // socketId -> userName
+// Store connected users with their socket IDs and rooms
+const connectedUsers = new Map(); 
+const userSockets = new Map(); 
+const roomUsers = new Map(); 
 
-io.on("connection",(socket)=>{
-  console.log("User Conected", socket.id);
+io.on("connection", (socket) => {
+  console.log("User Connected", socket.id);
 
-  socket.on('set-username',(userName, ack)=>{
-    // Remove old username if it exists
-    if (socket.userName) {
-      connectedUsers.delete(socket.userName);
-      userSockets.delete(socket.id);
+  socket.on('join-room', ({ userName, room }, ack) => {
+    // Remove user from previous room if exists
+    if (socket.userName && socket.room) {
+      if (roomUsers.has(socket.room)) {
+        roomUsers.get(socket.room).delete(socket.userName);
+        if (roomUsers.get(socket.room).size === 0) roomUsers.delete(socket.room);
+      }
     }
-    
-    socket.userName=userName;
-    connectedUsers.set(userName, socket.id);
+    socket.join(room);
+    socket.userName = userName;
+    socket.room = room;
+    connectedUsers.set(userName, { socketId: socket.id, room });
     userSockets.set(socket.id, userName);
-    
-    // Broadcast updated online users list
-    io.emit('user-status-update', {
+    if (!roomUsers.has(room)) roomUsers.set(room, new Set());
+    roomUsers.get(room).add(userName);
+    // Broadcast updated online users list to the room
+    io.to(room).emit('user-status-update', {
       type: 'user-online',
-      userName: userName,
-      onlineUsers: Array.from(connectedUsers.keys())
+      userName,
+      onlineUsers: Array.from(roomUsers.get(room))
     });
-    
     if (typeof ack === 'function') {
       ack({ success: true });
     }
   });
 
-   socket.on('chat-message', (data) => {
-    io.emit('chat-message', data);
-  });
-
-   socket.on('typing', (username) => {
-    socket.broadcast.emit('typing', username); 
-  });
-
-  socket.on("disconnect",()=>{
-    console.log("User disconnected",socket.id);
-    
-    // Remove user from online list
-    const userName = userSockets.get(socket.id);
-    if (userName) {
-      connectedUsers.delete(userName);
-      userSockets.delete(socket.id);
-      
-      // Broadcast updated online users list
-      io.emit('user-status-update', {
-        type: 'user-offline',
-        userName: userName,
-        onlineUsers: Array.from(connectedUsers.keys())
-      });
+  socket.on('chat-message', (data) => {
+    // data: { userName, msg, timestamp, room }
+    console.log('Received chat message:', data);
+    if (data.room) {
+      // Assign a unique ID to each message if not present
+      if (!data.id) data.id = uuidv4();
+      console.log('Broadcasting message to room:', data.room);
+      console.log('Message data:', data);
+      io.to(data.room).emit('chat-message', data);
+    } else {
+      console.log('Message rejected - no room specified');
     }
   });
-}
 
-);
+  // Read receipts
+  socket.on('message-read', ({ messageId, room, userName }) => {
+    // Broadcast to the room that this user has read the message
+    io.to(room).emit('message-read', { messageId, userName });
+  });
+
+  socket.on('typing', ({ userName, room }) => {
+    socket.to(room).emit('typing', userName);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected", socket.id);
+    const userName = userSockets.get(socket.id);
+    const room = socket.room;
+    if (userName && room) {
+      connectedUsers.delete(userName);
+      userSockets.delete(socket.id);
+      if (roomUsers.has(room)) {
+        roomUsers.get(room).delete(userName);
+        if (roomUsers.get(room).size === 0) roomUsers.delete(room);
+      }
+      // Broadcast updated online users list to the room
+      if (room) {
+        io.to(room).emit('user-status-update', {
+          type: 'user-offline',
+          userName,
+          onlineUsers: roomUsers.has(room) ? Array.from(roomUsers.get(room)) : []
+        });
+      }
+    }
+  });
+});
 
 server.listen(process.env.PORT||3000,()=>{
   console.log(`Server running on Port:${process.env.PORT||3000}`);
